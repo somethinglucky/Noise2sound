@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { formatTime, type Clip } from "../audio/clip";
 import { type AudioData, durationSeconds, lengthSamples } from "../audio/data";
-import { insert, remove, slice } from "../audio/edit";
+import { insert, markRange, remove, slice } from "../audio/edit";
 import { canRedo, canUndo, createHistory, current, push, redo, undo } from "../audio/history";
 import { encodeWav } from "../audio/wav";
 import { FREE_CLIP_SECONDS } from "../config";
@@ -84,6 +84,12 @@ export default function EditorScreen({ clip, onClose }: Props) {
 
   const selectAll = () => waveRef.current?.select({ start: 0, end: total });
 
+  const mark = (edge: "start" | "end") => {
+    const range = markRange(selection, waveRef.current?.getTime() ?? 0, total, edge);
+    if (range) waveRef.current?.select(range);
+    else setMessage("Move the playhead first (tap the waveform), then set the start or end.");
+  };
+
   const doUndo = () => {
     setMessage(null);
     setRestore({ time: waveRef.current?.getTime() ?? 0, selection: null });
@@ -111,11 +117,22 @@ export default function EditorScreen({ clip, onClose }: Props) {
       <p className="selection-info dim">
         {selection
           ? `Selected ${formatTime(selection.start)} to ${formatTime(selection.end)} (${(selection.end - selection.start).toFixed(2)}s)`
-          : "Drag on the waveform to select a part. Tap to move the playhead."}
+          : "Drag on the waveform to select a part, or tap it to move the playhead and use Set start / Set end."}
       </p>
 
+      <div className="select-row">
+        <button className="btn-chip" onClick={() => mark("start")}>
+          Set start
+        </button>
+        <button className="btn-chip" onClick={() => mark("end")}>
+          Set end
+        </button>
+        <button className="btn-chip" onClick={selectAll}>
+          Select all
+        </button>
+      </div>
+
       <div className="toolbar">
-        <ToolButton icon="⬚" label="Select all" onClick={selectAll} />
         <ToolButton icon="✂" label="Trim" disabled={!selection} onClick={trim} />
         <ToolButton icon="⌫" label="Cut" disabled={!selection} onClick={() => removeSelection(true)} />
         <ToolButton icon="⧉" label="Copy" disabled={!selection} onClick={copy} />

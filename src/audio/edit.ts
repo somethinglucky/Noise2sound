@@ -1,5 +1,35 @@
 import { type AudioData, lengthSamples } from "./data";
 
+export interface Range {
+  start: number;
+  end: number;
+}
+
+/**
+ * Move one edge of the selection to `time` (seconds). With no selection yet,
+ * "start" selects from `time` to the end of the clip and "end" selects from the
+ * beginning to `time`. If the edges would cross, the other edge resets to the
+ * clip boundary. Returns null if the result would be empty.
+ */
+export function markRange(
+  current: Range | null,
+  time: number,
+  total: number,
+  edge: "start" | "end",
+): Range | null {
+  const t = Math.min(Math.max(time, 0), total);
+  let start = current?.start ?? 0;
+  let end = current?.end ?? total;
+  if (edge === "start") {
+    start = t;
+    if (end <= start) end = total;
+  } else {
+    end = t;
+    if (start >= end) start = 0;
+  }
+  return end - start > 0.01 ? { start, end } : null;
+}
+
 /** Convert seconds to a sample index, clamped to the clip. */
 export function toSample(a: AudioData, seconds: number): number {
   const i = Math.round(seconds * a.sampleRate);

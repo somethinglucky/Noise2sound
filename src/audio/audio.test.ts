@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { type AudioData, durationSeconds, lengthSamples } from "./data";
-import { insert, remove, slice } from "./edit";
+import { insert, markRange, remove, slice } from "./edit";
 import { canRedo, canUndo, createHistory, current, push, redo, undo } from "./history";
 import { encodeWav } from "./wav";
 
@@ -59,6 +59,31 @@ describe("edit", () => {
 
   it("reports duration", () => {
     expect(durationSeconds(make(ramp(25)))).toBe(2.5);
+  });
+});
+
+describe("markRange", () => {
+  it("set start with no selection runs to the end of the clip", () => {
+    expect(markRange(null, 2, 6, "start")).toEqual({ start: 2, end: 6 });
+  });
+
+  it("set end with no selection runs from the beginning", () => {
+    expect(markRange(null, 4, 6, "end")).toEqual({ start: 0, end: 4 });
+  });
+
+  it("adjusts one edge and keeps the other", () => {
+    expect(markRange({ start: 1, end: 5 }, 3, 6, "start")).toEqual({ start: 3, end: 5 });
+    expect(markRange({ start: 1, end: 5 }, 4, 6, "end")).toEqual({ start: 1, end: 4 });
+  });
+
+  it("resets the other edge when edges would cross", () => {
+    expect(markRange({ start: 1, end: 3 }, 4, 6, "start")).toEqual({ start: 4, end: 6 });
+    expect(markRange({ start: 3, end: 5 }, 2, 6, "end")).toEqual({ start: 0, end: 2 });
+  });
+
+  it("returns null for an empty selection", () => {
+    expect(markRange(null, 6, 6, "start")).toBeNull();
+    expect(markRange(null, 0, 6, "end")).toBeNull();
   });
 });
 

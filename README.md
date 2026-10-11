@@ -7,7 +7,7 @@ Hum, sing, play, or make a noise, then shape it into game-ready music and sound 
 - Record from the microphone (free tier capped at 15 seconds)
 - Upload an existing audio file
 - Waveform view with play/pause, seek, and loop
-- Select a part by dragging on the waveform (handles to adjust), or Select all
+- Select a part by dragging on the waveform (handles to adjust), by moving the playhead and tapping Set start / Set end, or with Select all
 - Trim (keep selection), Cut, Copy, Paste (at playhead), Delete, Undo/Redo (20 steps)
 - Pasting past the free 15 second cap is blocked
 
