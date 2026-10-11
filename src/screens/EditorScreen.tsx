@@ -1,16 +1,21 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { formatTime, type Clip } from "../audio/clip";
 import { type AudioData, durationSeconds, lengthSamples } from "../audio/data";
 import { insert, markRange, remove, slice } from "../audio/edit";
+import { cloneEffects, DEFAULT_EFFECTS, isNeutral } from "../audio/effects";
 import { canRedo, canUndo, createHistory, current, push, redo, undo } from "../audio/history";
+import { useEffectsPreview } from "../audio/useEffectsPreview";
 import { encodeWav } from "../audio/wav";
 import { FREE_CLIP_SECONDS } from "../config";
+import EffectsPanel from "../components/EffectsPanel";
 import Waveform, { type Restore, type Selection, type WaveformHandle } from "../components/Waveform";
 
 interface Props {
   clip: Clip;
   onClose: () => void;
 }
+
+type Tab = "edit" | "effects";
 
 function ToolButton(props: { label: string; icon: string; disabled?: boolean; onClick: () => void }) {
   return (
@@ -25,26 +30,44 @@ function ToolButton(props: { label: string; icon: string; disabled?: boolean; on
 
 export default function EditorScreen({ clip, onClose }: Props) {
   const waveRef = useRef<WaveformHandle>(null);
+  /** What the waveform should restore on its next reload. Edits set this; otherwise the playhead is kept. */
+  const pendingRestoreRef = useRef<Restore | null>(null);
+
+  const [tab, setTab] = useState<Tab>("edit");
   const [history, setHistory] = useState(() => createHistory<AudioData>(clip.data));
   const [clipboard, setClipboard] = useState<AudioData | null>(null);
   const [selection, setSelection] = useState<Selection | null>(null);
-  const [restore, setRestore] = useState<Restore | undefined>(undefined);
   const [message, setMessage] = useState<string | null>(null);
-  const [url, setUrl] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState<{ url: string; restore: Restore } | null>(null);
+
+  const [fx, setFx] = useState(() => cloneEffects(DEFAULT_EFFECTS));
+  const [hearOriginal, setHearOriginal] = useState(false);
 
   const data = current(history);
+  const preview = useEffectsPreview(data, fx, tab === "effects", FREE_CLIP_SECONDS);
+
+  // What you hear: the processed version while on the Effects tab, otherwise the edited clip.
+  const playData = useMemo(
+    () => (tab === "effects" && !hearOriginal && preview.result ? preview.result : data),
+    [tab, hearOriginal, preview.result, data],
+  );
   const total = durationSeconds(data);
 
-  // Re-render the audio into a playable file whenever the edit changes.
+  // Turn the audio being played into a file the waveform can load.
   useEffect(() => {
-    const u = URL.createObjectURL(encodeWav(data));
-    setUrl(u);
+    const u = URL.createObjectURL(encodeWav(playData));
+    const restore = pendingRestoreRef.current ?? {
+      time: waveRef.current?.getTime() ?? 0,
+      selection: null,
+    };
+    pendingRestoreRef.current = null;
+    setLoaded({ url: u, restore });
     return () => URL.revokeObjectURL(u);
-  }, [data]);
+  }, [playData]);
 
   const commit = (next: AudioData, after: Restore) => {
     setMessage(null);
-    setRestore(after);
+    pendingRestoreRef.current = after;
     setHistory((h) => push(h, next));
   };
 
@@ -92,14 +115,30 @@ export default function EditorScreen({ clip, onClose }: Props) {
 
   const doUndo = () => {
     setMessage(null);
-    setRestore({ time: waveRef.current?.getTime() ?? 0, selection: null });
+    pendingRestoreRef.current = { time: waveRef.current?.getTime() ?? 0, selection: null };
     setHistory((h) => undo(h));
   };
 
   const doRedo = () => {
     setMessage(null);
-    setRestore({ time: waveRef.current?.getTime() ?? 0, selection: null });
+    pendingRestoreRef.current = { time: waveRef.current?.getTime() ?? 0, selection: null };
     setHistory((h) => redo(h));
+  };
+
+  const switchTab = (next: Tab) => {
+    setMessage(null);
+    setHearOriginal(false);
+    setTab(next);
+  };
+
+  const neutral = isNeutral(fx);
+
+  const applyEffectsToClip = () => {
+    if (!preview.result || preview.processing) return;
+    commit(preview.result, { time: 0, selection: null });
+    setFx(cloneEffects(DEFAULT_EFFECTS));
+    setHearOriginal(false);
+    setMessage("Effects applied. You can undo this in the Edit tab.");
   };
 
   return (
@@ -109,38 +148,95 @@ export default function EditorScreen({ clip, onClose }: Props) {
           ‹ Home
         </button>
         <h2>{clip.name}</h2>
-        <span className="dim small">{formatTime(total)}</span>
+        <span className="dim small">{formatTime(durationSeconds(playData))}</span>
       </header>
 
-      {url && <Waveform ref={waveRef} url={url} restore={restore} onSelectionChange={setSelection} />}
-
-      <p className="selection-info dim">
-        {selection
-          ? `Selected ${formatTime(selection.start)} to ${formatTime(selection.end)} (${(selection.end - selection.start).toFixed(2)}s)`
-          : "Drag on the waveform to select a part, or tap it to move the playhead and use Set start / Set end."}
-      </p>
-
-      <div className="select-row">
-        <button className="btn-chip" onClick={() => mark("start")}>
-          Set start
+      <div className="tabs" role="tablist">
+        <button role="tab" aria-selected={tab === "edit"} className={tab === "edit" ? "on" : ""} onClick={() => switchTab("edit")}>
+          Edit
         </button>
-        <button className="btn-chip" onClick={() => mark("end")}>
-          Set end
-        </button>
-        <button className="btn-chip" onClick={selectAll}>
-          Select all
+        <button
+          role="tab"
+          aria-selected={tab === "effects"}
+          className={tab === "effects" ? "on" : ""}
+          onClick={() => switchTab("effects")}
+        >
+          Effects
         </button>
       </div>
 
-      <div className="toolbar">
-        <ToolButton icon="✂" label="Trim" disabled={!selection} onClick={trim} />
-        <ToolButton icon="⌫" label="Cut" disabled={!selection} onClick={() => removeSelection(true)} />
-        <ToolButton icon="⧉" label="Copy" disabled={!selection} onClick={copy} />
-        <ToolButton icon="⎘" label="Paste" disabled={!clipboard} onClick={paste} />
-        <ToolButton icon="✕" label="Delete" disabled={!selection} onClick={() => removeSelection(false)} />
-        <ToolButton icon="↶" label="Undo" disabled={!canUndo(history)} onClick={doUndo} />
-        <ToolButton icon="↷" label="Redo" disabled={!canRedo(history)} onClick={doRedo} />
-      </div>
+      {loaded && <Waveform ref={waveRef} url={loaded.url} restore={loaded.restore} onSelectionChange={setSelection} />}
+
+      {tab === "edit" && (
+        <>
+          <p className="selection-info dim">
+            {selection
+              ? `Selected ${formatTime(selection.start)} to ${formatTime(selection.end)} (${(selection.end - selection.start).toFixed(2)}s)`
+              : "Drag on the waveform to select a part, or tap it to move the playhead and use Set start / Set end."}
+          </p>
+
+          <div className="select-row">
+            <button className="btn-chip" onClick={() => mark("start")}>
+              Set start
+            </button>
+            <button className="btn-chip" onClick={() => mark("end")}>
+              Set end
+            </button>
+            <button className="btn-chip" onClick={selectAll}>
+              Select all
+            </button>
+          </div>
+
+          <div className="toolbar">
+            <ToolButton icon="✂" label="Trim" disabled={!selection} onClick={trim} />
+            <ToolButton icon="⌫" label="Cut" disabled={!selection} onClick={() => removeSelection(true)} />
+            <ToolButton icon="⧉" label="Copy" disabled={!selection} onClick={copy} />
+            <ToolButton icon="⎘" label="Paste" disabled={!clipboard} onClick={paste} />
+            <ToolButton icon="✕" label="Delete" disabled={!selection} onClick={() => removeSelection(false)} />
+            <ToolButton icon="↶" label="Undo" disabled={!canUndo(history)} onClick={doUndo} />
+            <ToolButton icon="↷" label="Redo" disabled={!canRedo(history)} onClick={doRedo} />
+          </div>
+        </>
+      )}
+
+      {tab === "effects" && (
+        <>
+          <div className="fx-bar">
+            <button
+              className={`btn-chip ${hearOriginal ? "on" : ""}`}
+              disabled={neutral}
+              onClick={() => setHearOriginal((v) => !v)}
+              aria-pressed={hearOriginal}
+            >
+              {hearOriginal ? "Hearing original" : "Hear original"}
+            </button>
+            <button className="btn-chip" disabled={neutral} onClick={() => setFx(cloneEffects(DEFAULT_EFFECTS))}>
+              Reset
+            </button>
+            <button
+              className="btn-primary small-btn"
+              disabled={neutral || preview.processing || !preview.result}
+              onClick={applyEffectsToClip}
+            >
+              Apply
+            </button>
+          </div>
+
+          <p className="selection-info dim">
+            {preview.processing
+              ? "Processing…"
+              : neutral
+                ? "Pick a preset or switch an effect on, then press play."
+                : "Press play to hear it. Apply keeps the result in your clip."}
+          </p>
+
+          {preview.truncated && !preview.processing && (
+            <p className="notice">The end was cut off to stay within the free {FREE_CLIP_SECONDS}s limit.</p>
+          )}
+
+          <EffectsPanel params={fx} onChange={setFx} />
+        </>
+      )}
 
       {message && <p className="notice">{message}</p>}
 
@@ -148,12 +244,7 @@ export default function EditorScreen({ clip, onClose }: Props) {
         <p>
           <strong>Coming next</strong>
         </p>
-        <p className="dim">
-          Pitch, speed, reverb, EQ and 8-bit effects, then export to WAV, MP3 or OGG.
-        </p>
-        <p className="dim small">
-          Trim keeps the selected part. Cut and Delete remove it. Paste inserts at the playhead.
-        </p>
+        <p className="dim">Export to WAV, MP3 or OGG.</p>
       </div>
     </section>
   );

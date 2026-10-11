@@ -2,7 +2,7 @@
 
 Hum, sing, play, or make a noise, then shape it into game-ready music and sound effects. Built for indie game developers. Runs entirely in the browser (installable as a PWA).
 
-## Status: Milestone 2
+## Status: Milestone 3
 
 - Record from the microphone (free tier capped at 15 seconds)
 - Upload an existing audio file
@@ -10,8 +10,11 @@ Hum, sing, play, or make a noise, then shape it into game-ready music and sound 
 - Select a part by dragging on the waveform (handles to adjust), by moving the playhead and tapping Set start / Set end, or with Select all
 - Trim (keep selection), Cut, Copy, Paste (at playhead), Delete, Undo/Redo (20 steps)
 - Pasting past the free 15 second cap is blocked
+- Effects tab: Pitch (keeps length), Speed (keeps pitch), 3-band EQ, 8-bit/bitcrush, Reverb, plus one-tap presets
+- Effects preview in a background worker, "Hear original" before/after toggle, Apply to keep the result (undoable)
+- Free tier: results are cut at 15 seconds (e.g. a long reverb tail)
 
-Planned next: effects chain (pitch, speed, reverb, EQ, 8-bit), export to WAV/MP3/OGG, premium gating.
+Planned next: export to WAV/MP3/OGG, premium gating.
 
 ## Develop
 
@@ -27,4 +30,4 @@ Microphone access needs HTTPS (or localhost), so serve the built `dist/` over HT
 
 ## Stack
 
-Vite, React, TypeScript, wavesurfer.js, vite-plugin-pwa. Audio processing runs client-side with the Web Audio API.
+Vite, React, TypeScript, wavesurfer.js, @soundtouchjs/core (pitch shifting, MPL-2.0), vite-plugin-pwa. All audio processing runs client-side in the browser.

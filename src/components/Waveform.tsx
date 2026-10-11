@@ -37,6 +37,8 @@ const Waveform = forwardRef<WaveformHandle, Props>(function Waveform(
   const wsRef = useRef<WaveSurfer | null>(null);
   const regionsRef = useRef<RegionsPlugin | null>(null);
   const loopRef = useRef(false);
+  /** Keep playing after the audio is swapped (e.g. while tweaking an effect). */
+  const resumeRef = useRef(false);
   const restoreRef = useRef(restore);
   const onSelRef = useRef(onSelectionChange);
   restoreRef.current = restore;
@@ -102,6 +104,10 @@ const Waveform = forwardRef<WaveformHandle, Props>(function Waveform(
           });
         }
       }
+      if (resumeRef.current) {
+        resumeRef.current = false;
+        void ws.play();
+      }
     });
     ws.on("timeupdate", (t) => setTime(t));
     ws.on("play", () => setPlaying(true));
@@ -122,6 +128,7 @@ const Waveform = forwardRef<WaveformHandle, Props>(function Waveform(
   useEffect(() => {
     const ws = wsRef.current;
     if (!ws) return;
+    resumeRef.current = ws.isPlaying();
     setReady(false);
     setPlaying(false);
     regionsRef.current?.clearRegions();

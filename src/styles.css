@@ -327,3 +327,163 @@ button:disabled {
   flex: 1;
   padding: 12px 8px;
 }
+
+/* Tabs */
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--surface);
+  border-radius: 14px;
+  padding: 4px;
+  gap: 4px;
+}
+
+.tabs button {
+  background: none;
+  padding: 10px;
+  border-radius: 10px;
+  font-weight: 600;
+  color: var(--dim);
+}
+
+.tabs button.on {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+/* Effects */
+.fx-bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.fx-bar .btn-chip {
+  padding: 12px 14px;
+}
+
+.small-btn {
+  padding: 12px 22px;
+  margin-left: auto;
+  font-size: 1rem;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.small-btn:disabled {
+  background: var(--surface-2);
+}
+
+.fx-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.presets {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+
+.presets::-webkit-scrollbar {
+  display: none;
+}
+
+.presets .btn-chip {
+  white-space: nowrap;
+  flex: none;
+}
+
+.fx-card {
+  background: var(--surface);
+  border-radius: 18px;
+  padding: 14px 16px;
+  border: 1px solid transparent;
+}
+
+.fx-card.on {
+  border-color: var(--accent);
+}
+
+.fx-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.fx-head h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.fx-head p {
+  margin: 2px 0 0;
+}
+
+.fx-body {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fx-card:not(.on) .fx-body {
+  opacity: 0.55;
+}
+
+.switch {
+  flex: none;
+  width: 52px;
+  height: 32px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  position: relative;
+  transition: background 0.15s;
+}
+
+.switch[aria-checked="true"] {
+  background: var(--accent);
+}
+
+.switch .knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.15s;
+}
+
+.switch[aria-checked="true"] .knob {
+  transform: translateX(20px);
+}
+
+.slider {
+  display: block;
+}
+
+.slider-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  margin-bottom: 2px;
+}
+
+.slider-value {
+  color: var(--accent-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.slider input[type="range"] {
+  width: 100%;
+  height: 36px;
+  margin: 0;
+  accent-color: var(--accent);
+  touch-action: pan-y;
+}
