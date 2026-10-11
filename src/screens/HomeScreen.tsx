@@ -27,7 +27,7 @@ export default function HomeScreen({ onRecord, onUpload, message }: Props) {
         <input
           ref={fileRef}
           type="file"
-          accept="audio/*"
+          accept="audio/*,.m4a,.mp3,.wav,.aac,.caf,.aif,.aiff,.mp4,.ogg,.oga,.opus,.flac,.webm"
           hidden
           onChange={(e) => {
             const file = e.target.files?.[0];
