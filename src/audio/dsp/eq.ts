@@ -8,7 +8,7 @@ interface Biquad {
   a2: number;
 }
 
-type Kind = "lowshelf" | "peaking" | "highshelf";
+type Kind = "lowshelf" | "peaking" | "highshelf" | "lowpass" | "highpass";
 
 /** Filter coefficients from the RBJ Audio EQ Cookbook, normalised so a0 = 1. */
 function design(kind: Kind, sampleRate: number, freq: number, gainDb: number, q: number): Biquad {
@@ -20,7 +20,19 @@ function design(kind: Kind, sampleRate: number, freq: number, gainDb: number, q:
   const alpha = sin / (2 * q);
 
   let b0: number, b1: number, b2: number, a0: number, a1: number, a2: number;
-  if (kind === "peaking") {
+  if (kind === "lowpass" || kind === "highpass") {
+    if (kind === "lowpass") {
+      b0 = (1 - cos) / 2;
+      b1 = 1 - cos;
+    } else {
+      b0 = (1 + cos) / 2;
+      b1 = -(1 + cos);
+    }
+    b2 = b0;
+    a0 = 1 + alpha;
+    a1 = -2 * cos;
+    a2 = 1 - alpha;
+  } else if (kind === "peaking") {
     b0 = 1 + alpha * A;
     b1 = -2 * cos;
     b2 = 1 - alpha * A;
@@ -83,4 +95,19 @@ export function eq3(a: AudioData, lowDb: number, midDb: number, highDb: number):
     sampleRate: sr,
     channels: a.channels.map((ch) => stages.reduce((signal, stage) => run(signal, stage), ch)),
   };
+}
+
+function passFilter(a: AudioData, kind: "lowpass" | "highpass", hz: number): AudioData {
+  const stage = design(kind, a.sampleRate, hz, 0, 0.707);
+  return { sampleRate: a.sampleRate, channels: a.channels.map((ch) => run(ch, stage)) };
+}
+
+/** Removes everything above `hz` (muffled, "behind a wall"). Off at or above 19 kHz. */
+export function lowpass(a: AudioData, hz: number): AudioData {
+  return hz >= 19000 ? a : passFilter(a, "lowpass", Math.max(hz, 50));
+}
+
+/** Removes everything below `hz` (thin sound, rumble removal). Off at or below 25 Hz. */
+export function highpass(a: AudioData, hz: number): AudioData {
+  return hz <= 25 ? a : passFilter(a, "highpass", hz);
 }

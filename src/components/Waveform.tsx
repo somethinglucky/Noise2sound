@@ -65,7 +65,7 @@ const Waveform = forwardRef<WaveformHandle, Props>(function Waveform(
       barWidth: 3,
       barGap: 2,
       barRadius: 3,
-      normalize: true,
+      normalize: false,
       dragToSeek: false,
       plugins: [regions],
     });

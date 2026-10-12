@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { type AudioData, durationSeconds, lengthSamples } from "./data";
-import { insert, markRange, remove, slice } from "./edit";
+import { fadeRange, insert, insertSilence, markRange, remove, reverseRange, silenceRange, slice } from "./edit";
 import { canRedo, canUndo, createHistory, current, push, redo, undo } from "./history";
 import { encodeWav } from "./wav";
 
@@ -59,6 +59,51 @@ describe("edit", () => {
 
   it("reports duration", () => {
     expect(durationSeconds(make(ramp(25)))).toBe(2.5);
+  });
+});
+
+describe("reverse, fade, silence", () => {
+  it("reverses only the selected part", () => {
+    const out = reverseRange(make(ramp(10)), 0.2, 0.6);
+    expect(Array.from(out.channels[0])).toEqual([0, 1, 5, 4, 3, 2, 6, 7, 8, 9]);
+  });
+
+  it("reversing the whole clip twice gives the original back", () => {
+    const a = make(ramp(8));
+    const twice = reverseRange(reverseRange(a, 0, 99), 0, 99);
+    expect(Array.from(twice.channels[0])).toEqual(ramp(8));
+  });
+
+  it("fades in from silence to full level", () => {
+    const out = fadeRange(make([1, 1, 1, 1, 1]), 0, 0.5, "in").channels[0];
+    expect(out[0]).toBe(0);
+    expect(out[4]).toBe(1);
+    expect(out[2]).toBeCloseTo(0.5, 5);
+  });
+
+  it("fades out to silence and leaves the rest untouched", () => {
+    const out = fadeRange(make([1, 1, 1, 1, 1, 1]), 0.1, 0.5, "out").channels[0];
+    expect(out[0]).toBe(1);
+    expect(out[1]).toBe(1);
+    expect(out[4]).toBe(0);
+    expect(out[5]).toBe(1);
+  });
+
+  it("silences the selected part without changing the length", () => {
+    const out = silenceRange(make(ramp(6)), 0.2, 0.4);
+    expect(Array.from(out.channels[0])).toEqual([0, 1, 0, 0, 4, 5]);
+  });
+
+  it("inserts a gap of silence", () => {
+    const out = insertSilence(make([1, 2, 3]), 0.1, 0.2);
+    expect(Array.from(out.channels[0])).toEqual([1, 0, 0, 2, 3]);
+  });
+
+  it("works on stereo and does not change the original", () => {
+    const a = make(ramp(4), 2);
+    const out = reverseRange(a, 0, 99);
+    expect(Array.from(out.channels[1])).toEqual([3, 2, 1, 0]);
+    expect(Array.from(a.channels[0])).toEqual([0, 1, 2, 3]);
   });
 });
 

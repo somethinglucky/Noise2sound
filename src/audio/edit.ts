@@ -79,3 +79,58 @@ export function insert(a: AudioData, atSec: number, clip: AudioData): AudioData 
   });
   return { sampleRate: a.sampleRate, channels };
 }
+
+/** Apply `fn` to the samples between start and end of every channel, leaving the rest as it was. */
+function mapRange(
+  a: AudioData,
+  startSec: number,
+  endSec: number,
+  fn: (segment: Float32Array) => void,
+): AudioData {
+  const from = toSample(a, Math.min(startSec, endSec));
+  const to = toSample(a, Math.max(startSec, endSec));
+  return {
+    sampleRate: a.sampleRate,
+    channels: a.channels.map((ch) => {
+      const out = ch.slice();
+      fn(out.subarray(from, to));
+      return out;
+    }),
+  };
+}
+
+/** Play the part between start and end backwards. */
+export function reverseRange(a: AudioData, startSec: number, endSec: number): AudioData {
+  return mapRange(a, startSec, endSec, (seg) => seg.reverse());
+}
+
+/** Fade the part between start and end in from silence, or out to silence. */
+export function fadeRange(
+  a: AudioData,
+  startSec: number,
+  endSec: number,
+  direction: "in" | "out",
+): AudioData {
+  return mapRange(a, startSec, endSec, (seg) => {
+    const n = seg.length;
+    for (let i = 0; i < n; i++) {
+      const t = n > 1 ? i / (n - 1) : 1;
+      seg[i] *= direction === "in" ? t : 1 - t;
+    }
+  });
+}
+
+/** Replace the part between start and end with silence (the clip keeps its length). */
+export function silenceRange(a: AudioData, startSec: number, endSec: number): AudioData {
+  return mapRange(a, startSec, endSec, (seg) => seg.fill(0));
+}
+
+/** Insert `seconds` of silence at `atSec`, making the clip longer. */
+export function insertSilence(a: AudioData, atSec: number, seconds: number): AudioData {
+  const n = Math.round(Math.max(seconds, 0) * a.sampleRate);
+  const gap: AudioData = {
+    sampleRate: a.sampleRate,
+    channels: a.channels.map(() => new Float32Array(n)),
+  };
+  return insert(a, atSec, gap);
+}

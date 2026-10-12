@@ -2,7 +2,7 @@
 
 Hum, sing, play, or make a noise, then shape it into game-ready music and sound effects. Built for indie game developers. Runs entirely in the browser (installable as a PWA).
 
-## Status: Milestone 3
+## Status: Milestone 3 (plus effects pack)
 
 - Record from the microphone (free tier capped at 15 seconds)
 - Upload an existing audio file
@@ -10,7 +10,13 @@ Hum, sing, play, or make a noise, then shape it into game-ready music and sound 
 - Select a part by dragging on the waveform (handles to adjust), by moving the playhead and tapping Set start / Set end, or with Select all
 - Trim (keep selection), Cut, Copy, Paste (at playhead), Delete, Undo/Redo (20 steps)
 - Pasting past the free 15 second cap is blocked
-- Effects tab: Pitch (keeps length), Speed (keeps pitch), 3-band EQ, 8-bit/bitcrush, Reverb, plus one-tap presets
+- Effects tab, in collapsible groups, with one-tap presets:
+  - Clean up: Noise reduction (learns the noise from the quietest part), Noise gate, Filter (muffle / low cut)
+  - Tone and pitch: Pitch (keeps length), Speed (keeps pitch), 3-band EQ
+  - Character: Distortion, Robot, 8-bit (with a Smoothing control to cut the static)
+  - Space: Echo, Reverb
+  - Level: Volume (+/- 24 dB, Normalize, soft limiter so boosts don't crackle)
+- Shape tools on the Edit tab: Reverse, Fade in, Fade out, Mute, Duplicate, Add pause
 - Effects preview in a background worker, "Hear original" before/after toggle, Apply to keep the result (undoable)
 - Free tier: results are cut at 15 seconds (e.g. a long reverb tail)
 

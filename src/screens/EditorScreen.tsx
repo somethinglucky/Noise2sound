@@ -1,7 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { formatTime, type Clip } from "../audio/clip";
 import { type AudioData, durationSeconds, lengthSamples } from "../audio/data";
-import { insert, markRange, remove, slice } from "../audio/edit";
+import {
+  fadeRange,
+  insert,
+  insertSilence,
+  markRange,
+  remove,
+  reverseRange,
+  silenceRange,
+  slice,
+} from "../audio/edit";
 import { cloneEffects, DEFAULT_EFFECTS, isNeutral } from "../audio/effects";
 import { canRedo, canUndo, createHistory, current, push, redo, undo } from "../audio/history";
 import { useEffectsPreview } from "../audio/useEffectsPreview";
@@ -107,6 +116,47 @@ export default function EditorScreen({ clip, onClose }: Props) {
 
   const selectAll = () => waveRef.current?.select({ start: 0, end: total });
 
+  /** The selection, or the whole clip if nothing is selected. */
+  const target = selection ?? { start: 0, end: total };
+
+  const reverse = () =>
+    commit(reverseRange(data, target.start, target.end), { time: target.start, selection });
+
+  const fade = (direction: "in" | "out") =>
+    commit(fadeRange(data, target.start, target.end, direction), { time: target.start, selection });
+
+  const mute = () => {
+    if (!selection) return;
+    commit(silenceRange(data, selection.start, selection.end), { time: selection.start, selection });
+  };
+
+  const duplicate = () => {
+    if (!selection) return;
+    const piece = slice(data, selection.start, selection.end);
+    const len = durationSeconds(piece);
+    if (total + len > FREE_CLIP_SECONDS + 0.05) {
+      setMessage(`Free clips are limited to ${FREE_CLIP_SECONDS}s. Premium will remove the limit.`);
+      return;
+    }
+    commit(insert(data, selection.end, piece), {
+      time: selection.end,
+      selection: { start: selection.end, end: selection.end + len },
+    });
+  };
+
+  const PAUSE_SECONDS = 0.25;
+  const addPause = () => {
+    const at = Math.min(waveRef.current?.getTime() ?? 0, total);
+    if (total + PAUSE_SECONDS > FREE_CLIP_SECONDS + 0.05) {
+      setMessage(`Free clips are limited to ${FREE_CLIP_SECONDS}s. Premium will remove the limit.`);
+      return;
+    }
+    commit(insertSilence(data, at, PAUSE_SECONDS), {
+      time: at,
+      selection: { start: at, end: at + PAUSE_SECONDS },
+    });
+  };
+
   const mark = (edge: "start" | "end") => {
     const range = markRange(selection, waveRef.current?.getTime() ?? 0, total, edge);
     if (range) waveRef.current?.select(range);
@@ -187,6 +237,7 @@ export default function EditorScreen({ clip, onClose }: Props) {
             </button>
           </div>
 
+          <h4 className="section-label">Edit</h4>
           <div className="toolbar">
             <ToolButton icon="✂" label="Trim" disabled={!selection} onClick={trim} />
             <ToolButton icon="⌫" label="Cut" disabled={!selection} onClick={() => removeSelection(true)} />
@@ -196,6 +247,17 @@ export default function EditorScreen({ clip, onClose }: Props) {
             <ToolButton icon="↶" label="Undo" disabled={!canUndo(history)} onClick={doUndo} />
             <ToolButton icon="↷" label="Redo" disabled={!canRedo(history)} onClick={doRedo} />
           </div>
+
+          <h4 className="section-label">Shape</h4>
+          <div className="toolbar">
+            <ToolButton icon="⇋" label="Reverse" onClick={reverse} />
+            <ToolButton icon="◢" label="Fade in" onClick={() => fade("in")} />
+            <ToolButton icon="◣" label="Fade out" onClick={() => fade("out")} />
+            <ToolButton icon="🔇" label="Mute" disabled={!selection} onClick={mute} />
+            <ToolButton icon="⧉" label="Duplicate" disabled={!selection} onClick={duplicate} />
+            <ToolButton icon="⏸" label="Add pause" onClick={addPause} />
+          </div>
+          <p className="dim small">Reverse and fades use your selection, or the whole clip if nothing is selected.</p>
         </>
       )}
 
