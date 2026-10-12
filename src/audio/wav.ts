@@ -1,10 +1,10 @@
 import { type AudioData, lengthSamples } from "./data";
 
-/** Encode raw audio as a 16-bit PCM WAV file. */
-export function encodeWav(a: AudioData): Blob {
+/** Encode raw audio as a 16-bit or 24-bit PCM WAV file. */
+export function encodeWav(a: AudioData, bits: 16 | 24 = 16): Blob {
   const numChannels = a.channels.length;
   const frames = lengthSamples(a);
-  const bytesPerSample = 2;
+  const bytesPerSample = bits / 8;
   const dataSize = frames * numChannels * bytesPerSample;
   const buffer = new ArrayBuffer(44 + dataSize);
   const view = new DataView(buffer);
@@ -23,7 +23,7 @@ export function encodeWav(a: AudioData): Blob {
   view.setUint32(24, a.sampleRate, true);
   view.setUint32(28, a.sampleRate * numChannels * bytesPerSample, true);
   view.setUint16(32, numChannels * bytesPerSample, true);
-  view.setUint16(34, 16, true);
+  view.setUint16(34, bits, true);
   writeString(36, "data");
   view.setUint32(40, dataSize, true);
 
@@ -31,8 +31,15 @@ export function encodeWav(a: AudioData): Blob {
   for (let i = 0; i < frames; i++) {
     for (let c = 0; c < numChannels; c++) {
       const s = Math.max(-1, Math.min(1, a.channels[c][i]));
-      view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
-      offset += 2;
+      if (bits === 16) {
+        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+      } else {
+        const v = Math.round(s < 0 ? s * 0x800000 : s * 0x7fffff);
+        view.setUint8(offset, v & 0xff);
+        view.setUint8(offset + 1, (v >> 8) & 0xff);
+        view.setUint8(offset + 2, (v >> 16) & 0xff);
+      }
+      offset += bytesPerSample;
     }
   }
 

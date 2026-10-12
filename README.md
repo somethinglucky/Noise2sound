@@ -2,7 +2,7 @@
 
 Hum, sing, play, or make a noise, then shape it into game-ready music and sound effects. Built for indie game developers. Runs entirely in the browser (installable as a PWA).
 
-## Status: Milestone 3 (plus effects pack)
+## Status: Milestone 4 (export)
 
 - Record from the microphone (free tier capped at 15 seconds)
 - Upload an existing audio file
@@ -20,7 +20,13 @@ Hum, sing, play, or make a noise, then shape it into game-ready music and sound 
 - Effects preview in a background worker, "Hear original" before/after toggle, Apply to keep the result (undoable)
 - Free tier: results are cut at 15 seconds (e.g. a long reverb tail)
 
-Planned next: export to WAV/MP3/OGG, premium gating.
+- Export tab: WAV (16 or 24-bit), MP3 (96-320 kbps) or OGG Vorbis (quality 0-10)
+- Game-ready options: sample rate (44.1 / 22 / 11 kHz), mono, trim silence, soft edges (no loop clicks)
+- Optionally bakes in effects you haven't applied yet; file name box, size estimate
+- Download, Share (iOS share sheet), and a waveform picture (PNG)
+- OGG doesn't play in iPhone Safari, but game engines (Godot, Unity, GameMaker) read it
+
+Planned next: premium gating, sheet music / key detection, auto-tune.
 
 ## Develop
 
@@ -36,4 +42,4 @@ Microphone access needs HTTPS (or localhost), so serve the built `dist/` over HT
 
 ## Stack
 
-Vite, React, TypeScript, wavesurfer.js, @soundtouchjs/core (pitch shifting, MPL-2.0), vite-plugin-pwa. All audio processing runs client-side in the browser.
+Vite, React, TypeScript, wavesurfer.js, @soundtouchjs/core (pitch shifting, MPL-2.0), vite-plugin-pwa, wasm-media-encoders (MP3/OGG). All audio processing runs client-side in the browser.

@@ -17,6 +17,7 @@ import { useEffectsPreview } from "../audio/useEffectsPreview";
 import { encodeWav } from "../audio/wav";
 import { FREE_CLIP_SECONDS } from "../config";
 import EffectsPanel from "../components/EffectsPanel";
+import ExportPanel from "../components/ExportPanel";
 import Waveform, { type Restore, type Selection, type WaveformHandle } from "../components/Waveform";
 
 interface Props {
@@ -24,7 +25,7 @@ interface Props {
   onClose: () => void;
 }
 
-type Tab = "edit" | "effects";
+type Tab = "edit" | "effects" | "export";
 
 function ToolButton(props: { label: string; icon: string; disabled?: boolean; onClick: () => void }) {
   return (
@@ -213,6 +214,14 @@ export default function EditorScreen({ clip, onClose }: Props) {
         >
           Effects
         </button>
+        <button
+          role="tab"
+          aria-selected={tab === "export"}
+          className={tab === "export" ? "on" : ""}
+          onClick={() => switchTab("export")}
+        >
+          Export
+        </button>
       </div>
 
       {loaded && <Waveform ref={waveRef} url={loaded.url} restore={loaded.restore} onSelectionChange={setSelection} />}
@@ -302,12 +311,7 @@ export default function EditorScreen({ clip, onClose }: Props) {
 
       {message && <p className="notice">{message}</p>}
 
-      <div className="placeholder-card">
-        <p>
-          <strong>Coming next</strong>
-        </p>
-        <p className="dim">Export to WAV, MP3 or OGG.</p>
-      </div>
+      {tab === "export" && <ExportPanel data={data} fx={fx} clipName={clip.name} />}
     </section>
   );
 }

@@ -331,7 +331,7 @@ button:disabled {
 /* Tabs */
 .tabs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   background: var(--surface);
   border-radius: 14px;
   padding: 4px;
@@ -540,4 +540,55 @@ button:disabled {
 
 .fx-body p {
   margin: 0;
+}
+
+/* Export */
+.text-input {
+  width: 100%;
+  margin-top: 6px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--surface-2);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+}
+
+.fx-card h3 {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+}
+
+.fx-card .dim {
+  margin: 8px 0 0;
+}
+
+.seg {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.seg button {
+  flex: 1;
+  padding: 10px 4px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.seg button.on {
+  background: var(--accent);
+}
+
+.small-btn.wide {
+  flex: 1;
+  margin-left: 0;
+}
+
+.img-btn {
+  width: 100%;
+  font-size: 1rem;
 }
