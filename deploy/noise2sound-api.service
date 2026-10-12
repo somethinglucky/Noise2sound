@@ -1,0 +1,18 @@
+[Unit]
+Description=Noise2sound API
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/noise2sound
+EnvironmentFile=/etc/noise2sound.env
+ExecStart=/usr/bin/node server-dist/index.js
+Restart=always
+User=www-data
+StateDirectory=noise2sound
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { useAccount } from "../account/AccountContext";
 
 interface Props {
   onRecord: () => void;
@@ -8,9 +9,13 @@ interface Props {
 
 export default function HomeScreen({ onRecord, onUpload, message }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const acct = useAccount();
 
   return (
     <section className="screen center">
+      <button className="btn-chip account-chip" onClick={() => acct.openAccount()}>
+        {acct.premium ? "★ Premium" : acct.signedIn ? "Account" : "Sign in"}
+      </button>
       <div className="brand">
         <img src="/icon.svg" alt="" width={72} height={72} />
         <h1>Noise2sound</h1>
@@ -37,7 +42,18 @@ export default function HomeScreen({ onRecord, onUpload, message }: Props) {
         />
       </div>
 
+      {acct.notice && (
+        <p className="notice" onClick={acct.clearNotice}>
+          {acct.notice}
+        </p>
+      )}
       {message && <p className="error">{message}</p>}
+      {message && !acct.premium && message.includes("Premium") && (
+        <button className="btn-chip" onClick={() => acct.openAccount()}>
+          Get Premium
+        </button>
+      )}
+      {!acct.premium && <p className="dim small">Free clips: up to {acct.clipSeconds} seconds.</p>}
     </section>
   );
 }

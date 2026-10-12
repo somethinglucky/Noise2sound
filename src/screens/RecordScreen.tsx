@@ -1,4 +1,4 @@
-import { FREE_CLIP_SECONDS } from "../config";
+import { useAccount } from "../account/AccountContext";
 import { useRecorder } from "../audio/useRecorder";
 import { formatTime } from "../audio/clip";
 
@@ -8,13 +8,14 @@ interface Props {
 }
 
 export default function RecordScreen({ onRecorded, onBack }: Props) {
+  const { clipSeconds } = useAccount();
   const { state, elapsed, level, error, start, stop } = useRecorder({
-    maxSeconds: FREE_CLIP_SECONDS,
+    maxSeconds: clipSeconds,
     onFinished: onRecorded,
   });
 
   const recording = state === "recording";
-  const progress = elapsed / FREE_CLIP_SECONDS;
+  const progress = elapsed / clipSeconds;
   const R = 92;
   const C = 2 * Math.PI * R;
 
@@ -52,7 +53,7 @@ export default function RecordScreen({ onRecorded, onBack }: Props) {
       </div>
 
       <p className="timer">
-        {formatTime(elapsed)} <span className="dim">/ {formatTime(FREE_CLIP_SECONDS)}</span>
+        {formatTime(elapsed)} <span className="dim">/ {formatTime(clipSeconds)}</span>
       </p>
       <p className="hint">
         {recording ? "Tap to stop" : "Tap to record. Hum, sing, or make any noise."}

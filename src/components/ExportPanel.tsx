@@ -14,7 +14,7 @@ import {
   type ExportOptions,
 } from "../audio/exporter";
 import { renderWaveformPng } from "../audio/waveformImage";
-import { FREE_CLIP_SECONDS } from "../config";
+import { useAccount } from "../account/AccountContext";
 
 interface Props {
   data: AudioData;
@@ -53,6 +53,7 @@ function saveBlob(blob: Blob, fileName: string) {
 }
 
 export default function ExportPanel({ data, fx, clipName }: Props) {
+  const { clipSeconds } = useAccount();
   const [opts, setOpts] = useState<ExportOptions>(DEFAULT_EXPORT);
   const [name, setName] = useState(() => clipName.replace(/\.[^.]+$/, ""));
   const [includeFx, setIncludeFx] = useState(true);
@@ -74,7 +75,7 @@ export default function ExportPanel({ data, fx, clipName }: Props) {
   const canShare = typeof navigator !== "undefined" && typeof navigator.canShare === "function";
 
   const build = async (): Promise<{ blob: Blob; fileName: string }> => {
-    const source = pending && includeFx ? applyEffects(data, fx, FREE_CLIP_SECONDS) : data;
+    const source = pending && includeFx ? applyEffects(data, fx, clipSeconds) : data;
     // Let the "Preparing…" message paint before the heavy work.
     await new Promise((r) => setTimeout(r, 30));
     const blob = await exportAudio(source, opts);
@@ -89,7 +90,7 @@ export default function ExportPanel({ data, fx, clipName }: Props) {
       let blob: Blob;
       let fileName: string;
       if (kind === "image") {
-        const source = pending && includeFx ? applyEffects(data, fx, FREE_CLIP_SECONDS) : data;
+        const source = pending && includeFx ? applyEffects(data, fx, clipSeconds) : data;
         blob = await renderWaveformPng(source);
         fileName = safeFileName(name, "png");
       } else {

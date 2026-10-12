@@ -3,7 +3,8 @@ import HomeScreen from "./screens/HomeScreen";
 import RecordScreen from "./screens/RecordScreen";
 import EditorScreen from "./screens/EditorScreen";
 import { makeClip, type Clip } from "./audio/clip";
-import { FREE_CLIP_SECONDS } from "./config";
+import { formatLimit } from "./config";
+import { useAccount } from "./account/AccountContext";
 
 type Screen = "home" | "record" | "editor";
 
@@ -11,15 +12,18 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>("home");
   const [clip, setClip] = useState<Clip | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const { clipSeconds, premium } = useAccount();
 
   const openBlob = useCallback(async (name: string, blob: Blob) => {
     setMessage(null);
     try {
       const next = await makeClip(name, blob);
-      if (next.durationSeconds > FREE_CLIP_SECONDS + 0.25) {
+      if (next.durationSeconds > clipSeconds + 0.25) {
         setScreen("home");
         setMessage(
-          `That clip is ${next.durationSeconds.toFixed(1)}s. Free clips can be up to ${FREE_CLIP_SECONDS}s. Premium will remove the limit.`,
+          premium
+            ? `That clip is ${formatLimit(Math.round(next.durationSeconds))} long. Premium clips can be up to ${formatLimit(clipSeconds)}.`
+            : `That clip is ${next.durationSeconds.toFixed(1)}s. Free clips can be up to ${clipSeconds}s. Premium removes the limit.`,
         );
         return;
       }
@@ -29,7 +33,7 @@ export default function App() {
       setScreen("home");
       setMessage("Couldn't read that audio. Try a different file or record a new clip.");
     }
-  }, []);
+  }, [clipSeconds, premium]);
 
   return (
     <main className="app">

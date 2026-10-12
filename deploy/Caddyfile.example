@@ -1,0 +1,11 @@
+noise2sound.vbuds.app {
+	encode gzip
+	handle /api/* {
+		reverse_proxy 127.0.0.1:8787
+	}
+	handle {
+		root * /var/www/noise2sound
+		try_files {path} /index.html
+		file_server
+	}
+}

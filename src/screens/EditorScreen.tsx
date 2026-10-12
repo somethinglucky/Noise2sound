@@ -15,7 +15,8 @@ import { cloneEffects, DEFAULT_EFFECTS, isNeutral } from "../audio/effects";
 import { canRedo, canUndo, createHistory, current, push, redo, undo } from "../audio/history";
 import { useEffectsPreview } from "../audio/useEffectsPreview";
 import { encodeWav } from "../audio/wav";
-import { FREE_CLIP_SECONDS } from "../config";
+import { formatLimit } from "../config";
+import { useAccount } from "../account/AccountContext";
 import EffectsPanel from "../components/EffectsPanel";
 import ExportPanel from "../components/ExportPanel";
 import Waveform, { type Restore, type Selection, type WaveformHandle } from "../components/Waveform";
@@ -39,6 +40,7 @@ function ToolButton(props: { label: string; icon: string; disabled?: boolean; on
 }
 
 export default function EditorScreen({ clip, onClose }: Props) {
+  const { clipSeconds, premium, openAccount } = useAccount();
   const waveRef = useRef<WaveformHandle>(null);
   /** What the waveform should restore on its next reload. Edits set this; otherwise the playhead is kept. */
   const pendingRestoreRef = useRef<Restore | null>(null);
@@ -53,8 +55,11 @@ export default function EditorScreen({ clip, onClose }: Props) {
   const [fx, setFx] = useState(() => cloneEffects(DEFAULT_EFFECTS));
   const [hearOriginal, setHearOriginal] = useState(false);
 
+  const capMessage = premium
+    ? `Clips can be up to ${formatLimit(clipSeconds)}.`
+    : `Free clips are limited to ${clipSeconds}s. Premium removes the limit.`;
   const data = current(history);
-  const preview = useEffectsPreview(data, fx, tab === "effects", FREE_CLIP_SECONDS);
+  const preview = useEffectsPreview(data, fx, tab === "effects", clipSeconds);
 
   // What you hear: the processed version while on the Effects tab, otherwise the edited clip.
   const playData = useMemo(
@@ -108,8 +113,8 @@ export default function EditorScreen({ clip, onClose }: Props) {
     if (!clipboard) return;
     const at = Math.min(waveRef.current?.getTime() ?? 0, total);
     const pasteLen = durationSeconds(clipboard);
-    if (total + pasteLen > FREE_CLIP_SECONDS + 0.05) {
-      setMessage(`Free clips are limited to ${FREE_CLIP_SECONDS}s. Premium will remove the limit.`);
+    if (total + pasteLen > clipSeconds + 0.05) {
+      setMessage(capMessage);
       return;
     }
     commit(insert(data, at, clipboard), { time: at, selection: { start: at, end: at + pasteLen } });
@@ -135,8 +140,8 @@ export default function EditorScreen({ clip, onClose }: Props) {
     if (!selection) return;
     const piece = slice(data, selection.start, selection.end);
     const len = durationSeconds(piece);
-    if (total + len > FREE_CLIP_SECONDS + 0.05) {
-      setMessage(`Free clips are limited to ${FREE_CLIP_SECONDS}s. Premium will remove the limit.`);
+    if (total + len > clipSeconds + 0.05) {
+      setMessage(capMessage);
       return;
     }
     commit(insert(data, selection.end, piece), {
@@ -148,8 +153,8 @@ export default function EditorScreen({ clip, onClose }: Props) {
   const PAUSE_SECONDS = 0.25;
   const addPause = () => {
     const at = Math.min(waveRef.current?.getTime() ?? 0, total);
-    if (total + PAUSE_SECONDS > FREE_CLIP_SECONDS + 0.05) {
-      setMessage(`Free clips are limited to ${FREE_CLIP_SECONDS}s. Premium will remove the limit.`);
+    if (total + PAUSE_SECONDS > clipSeconds + 0.05) {
+      setMessage(capMessage);
       return;
     }
     commit(insertSilence(data, at, PAUSE_SECONDS), {
@@ -302,14 +307,31 @@ export default function EditorScreen({ clip, onClose }: Props) {
           </p>
 
           {preview.truncated && !preview.processing && (
-            <p className="notice">The end was cut off to stay within the free {FREE_CLIP_SECONDS}s limit.</p>
+            <p className="notice">
+              The end was cut off to stay within the {premium ? "" : "free "}
+              {clipSeconds}s limit.{" "}
+              {!premium && (
+                <button className="btn-text inline" onClick={() => openAccount("Premium removes the 15 second limit, so long tails like reverb aren't cut off.")}>
+                  Get Premium
+                </button>
+              )}
+            </p>
           )}
 
           <EffectsPanel params={fx} onChange={setFx} />
         </>
       )}
 
-      {message && <p className="notice">{message}</p>}
+      {message && (
+        <p className="notice">
+          {message}{" "}
+          {message === capMessage && !premium && (
+            <button className="btn-text inline" onClick={() => openAccount()}>
+              Get Premium
+            </button>
+          )}
+        </p>
+      )}
 
       {tab === "export" && <ExportPanel data={data} fx={fx} clipName={clip.name} />}
     </section>

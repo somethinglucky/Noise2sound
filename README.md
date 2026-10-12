@@ -2,7 +2,7 @@
 
 Hum, sing, play, or make a noise, then shape it into game-ready music and sound effects. Built for indie game developers. Runs entirely in the browser (installable as a PWA).
 
-## Status: Milestone 4 (export)
+## Status: Milestone 5 (premium)
 
 - Record from the microphone (free tier capped at 15 seconds)
 - Upload an existing audio file
@@ -26,7 +26,9 @@ Hum, sing, play, or make a noise, then shape it into game-ready music and sound 
 - Download, Share (iOS share sheet), and a waveform picture (PNG)
 - OGG doesn't play in iPhone Safari, but game engines (Godot, Unity, GameMaker) read it
 
-Planned next: premium gating, sheet music / key detection, auto-tune.
+- Premium: one-time Stripe purchase removes the 15 s cap (clips up to 10 minutes). Sign in by emailed code or link, no passwords. See `DEPLOY.md` to set it up.
+
+Planned next: sheet music / key detection, auto-tune.
 
 ## Develop
 
@@ -36,6 +38,7 @@ npm run dev        # local dev server
 npm test           # unit tests for the edit logic
 npm run build      # type-check and production build into dist/
 npm run preview    # serve the production build
+npm run dev:server # premium API locally (needs a .env, see .env.example)
 ```
 
 Microphone access needs HTTPS (or localhost), so serve the built `dist/` over HTTPS in production (e.g. Caddy on the droplet).
